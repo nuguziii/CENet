@@ -27,7 +27,6 @@ def train(opt):
     logger, final_output_dir, tb_log_dir = create_logger(opt, 'train')
 
     logger.info(pprint.pformat(opt))
-    logger.info(opt)
 
     writer = SummaryWriter(log_dir=tb_log_dir)
 
