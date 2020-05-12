@@ -3,6 +3,8 @@ import logging
 import time
 import torch
 from pathlib import Path
+import nibabel as nib
+import numpy as np
 
 def create_logger(opt, phase='train'):
     root_output_dir = Path(opt.output_dir)
@@ -11,7 +13,7 @@ def create_logger(opt, phase='train'):
         print('=> creating {}'.format(root_output_dir))
         root_output_dir.mkdir()
 
-    final_output_dir = root_output_dir / phase / opt.description
+    final_output_dir = root_output_dir / opt.description
 
     print('=> creating {}'.format(final_output_dir))
     final_output_dir.mkdir(parents=True, exist_ok=True)
@@ -32,6 +34,11 @@ def create_logger(opt, phase='train'):
     print('=> creating {}'.format(tensorboard_log_dir))
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
 
+    if phase is 'test':
+        result_dir = final_output_dir / 'test'
+        result_dir.mkdir(parents=True, exist_ok=True)
+        return logger, str(final_output_dir), str(result_dir)
+
     return logger, str(final_output_dir), str(tensorboard_log_dir)
 
 def save_checkpoint(states, is_best, output_dir,
@@ -40,3 +47,29 @@ def save_checkpoint(states, is_best, output_dir,
     if is_best and 'state_dict' in states:
         torch.save(states['best_state_dict'],
                    os.path.join(output_dir, 'model_best.pth'))
+
+def save_img_to_nib(img, path, file_name):
+    # img = (w, h, d)
+    img = nib.Nifti1Image(img, np.eye(4))
+    nib.save(img, os.path.join(path, file_name+'.nii.gz'))
+
+def pred_image(img):
+    # img = (c, w, h, d)
+    return np.argmax(img, axis=0)
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count if self.count != 0 else 0
