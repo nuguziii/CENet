@@ -39,7 +39,7 @@ def train(opt):
     optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.1)
 
     # Data loading code
-    train_dataset = LiverDataset('train')
+    train_dataset = LiverDataset('train', opt.data_dir)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=opt.batch_size,
