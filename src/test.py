@@ -24,7 +24,7 @@ def test(opt):
     model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
 
     # Data loading code
-    test_dataset = LiverDataset('test')
+    test_dataset = LiverDataset('test', opt.data_dir)
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=1,
