@@ -115,7 +115,7 @@ def train(opt):
                   'Speed {speed:.1f} samples/s\t' \
                   'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                   'Loss {loss.val:.5f} (out:{out:.3f}/c:{c:.3f}/s:{s:.3f})\t' \
-                  'DSC {dsc.avg: .2f}'.format(
+                  'DSC {dsc.val: .2f}'.format(
                     epoch, idx, len(train_loader), batch_time=batch_time,
                     speed=image.size(0) / batch_time.val,
                     data_time=data_time,
@@ -146,7 +146,8 @@ def train(opt):
             'optimizer': optimizer.state_dict(),
         }, best_model, final_output_dir)
 
-        writer.add_scalar('loss', losses.val, epoch)
+        writer.add_scalar('loss', losses.avg, epoch+1)
+        writer.add_scalar('DSC', dsc.avg, epoch+1)
 
     final_model_state_file = os.path.join(
         final_output_dir, 'final_state.pth'
