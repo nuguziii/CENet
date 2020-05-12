@@ -6,8 +6,8 @@ from torch.autograd import Function
 class Loss(nn.Module):
     def __init__(self):
         super(Loss, self).__init__()
-        self.dice_loss = DiceLoss()
-        self.ce_loss = CELoss()
+        self.dice_loss = DiceLoss().cuda()
+        self.ce_loss = CELoss().cuda()
 
     def forward(self, output, shape_output, contour_output, gt, contour_gt, shape_gt, class_weights):
         output_loss = self.dice_loss(gt, output)
@@ -15,49 +15,44 @@ class Loss(nn.Module):
         contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
         return output_loss, shape_loss, contour_loss
 
-class DiceLoss(Function):
-    def __init__(self, *args, **kwargs):
-        pass
-    def forward(self, target, input, save=True):
-        if save:
-            self.save_for_backward(input, target)
-        eps = 0.000001
-        _, result_ = input.max(1)
-        #result_ = torch.squeeze(result_)
-        if input.is_cuda:
-            result = torch.cuda.FloatTensor(result_.size())
-            self.target_ = torch.cuda.FloatTensor(target.size())
+class DiceLoss(nn.Module):
+    def __init__(self):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, target, output, weights=None, ignore_index=None):
+        '''
+        :param target: NxDxHxW LongTensor
+        :param output: NxCxDxHxW Variable
+        :param weights: C FloatTensor
+        :param ignore_index: int index to ignore from loss
+        :return:
+        '''
+        eps = 0.0001
+        encoded_target = output.detach() * 0
+
+        if ignore_index is not None:
+            mask = target == ignore_index
+            target = target.clone()
+            target[mask] = 0
+            encoded_target.scatter_(1, target.unsqueeze(1), 1)
+            mask = mask.unsqueeze(1).expand_as(encoded_target)
+            encoded_target[mask] = 0
         else:
-            result = torch.FloatTensor(result_.size())
-            self.target_ = torch.FloatTensor(target.size())
-        result.copy_(result_)
-        self.target_.copy_(target)
-        target = self.target_
+            encoded_target.scatter_(1, target.unsqueeze(1), 1)
 
-        intersect = torch.sum(torch.sum(result * target))
-        # binary values so sum the same as sum of squares
-        result_sum = torch.sum(result)
-        target_sum = torch.sum(target)
-        union = result_sum + target_sum + (2*eps)
+        if weights is None:
+            weights = 1
 
-        # the target volume can be empty - so we still want to
-        # end up with a score of 1 if the result is 0/0
-        IoU = intersect / union
-        out = 2*IoU
-        self.intersect, self.union = intersect, union
-        return out
+        intersection = output * encoded_target
+        numerator = 2 * torch.squeeze(intersection).sum(1).sum(1).sum(1)
+        denominator = output + encoded_target
 
-    def backward(self, grad_output):
-        input, _ = self.saved_tensors
-        intersect, union = self.intersect, self.union
-        target = self.target_
-        gt = torch.div(target, union)
-        IoU2 = intersect/(union*union)
-        pred = torch.mul(input[:, 1], IoU2)
-        dDice = torch.add(torch.mul(gt, 2), torch.mul(pred, -4))
-        grad_input = torch.cat((torch.mul(dDice, -grad_output),
-                                torch.mul(dDice, grad_output)), 0)
-        return grad_input , None
+        if ignore_index is not None:
+            denominator[mask] = 0
+        denominator = torch.squeeze(denominator).sum(1).sum(1).sum(1) + eps
+        loss_per_channel = weights * (1 - (numerator / denominator))
+
+        return loss_per_channel.sum() / loss_per_channel.size(0)
 
 class CELoss(nn.Module):
     def __init__(self):
