@@ -3,67 +3,65 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 class Loss(nn.Module):
-    def __init__(self, alpha=1, beta=1, class_weights=None):
+    def __init__(self):
         super(Loss, self).__init__()
-        self.alpha = alpha
-        self.beta = beta
-        self.class_weights = class_weights
+        self.dice_loss = DiceLoss().cuda()
+        self.ce_loss = CELoss().cuda()
 
-    def forward(self, output, shape_output, contour_output, gt, contour_gt):
-        loss = dice_loss(gt, output) + self.alpha * dice_loss(gt, shape_output) + \
-               self.beta * ce_loss(contour_gt, contour_output, self.class_weights)
-        return loss
+    def forward(self, output, shape_output, contour_output, gt, contour_gt, shape_gt, class_weights):
+        output_loss = self.dice_loss(gt, output, class_weights)
+        shape_loss = self.dice_loss(shape_gt, shape_output, class_weights)
+        contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
+        return output_loss, shape_loss, contour_loss
 
-def dice_loss(true, logits, eps=1e-7):
-    """Computes the Sørensen–Dice loss.
-    Note that PyTorch optimizers minimize a loss. In this
-    case, we would like to maximize the dice loss so we
-    return the negated dice loss.
-    Args:
-        true: a tensor of shape [B, 1, H, W].
-        logits: a tensor of shape [B, C, H, W]. Corresponds to
-            the raw output or logits of the model.
-        eps: added to the denominator for numerical stability.
-    Returns:
-        dice_loss: the Sørensen–Dice loss.
-    """
-    num_classes = logits.shape[1]
-    if num_classes == 1:
-        true_1_hot = torch.eye(num_classes + 1)[true.squeeze(1)]
-        true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
-        true_1_hot_f = true_1_hot[:, 0:1, :, :]
-        true_1_hot_s = true_1_hot[:, 1:2, :, :]
-        true_1_hot = torch.cat([true_1_hot_s, true_1_hot_f], dim=1)
-        pos_prob = torch.sigmoid(logits)
-        neg_prob = 1 - pos_prob
-        probas = torch.cat([pos_prob, neg_prob], dim=1)
-    else:
-        true_1_hot = torch.eye(num_classes)[true.squeeze(1)]
-        true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
-        probas = F.softmax(logits, dim=1)
-    true_1_hot = true_1_hot.type(logits.type())
-    dims = (0,) + tuple(range(2, true.ndimension()))
-    intersection = torch.sum(probas * true_1_hot, dims)
-    cardinality = torch.sum(probas + true_1_hot, dims)
-    dice_loss = (2. * intersection / (cardinality + eps)).mean()
-    return (1 - dice_loss)
+class DiceLoss(nn.Module):
+    def __init__(self):
+        super(DiceLoss, self).__init__()
 
-def ce_loss(true, logits, weights, ignore=255):
-    """Computes the weighted multi-class cross-entropy loss.
-    Args:
-        true: a tensor of shape [B, 1, H, W].
-        logits: a tensor of shape [B, C, H, W]. Corresponds to
-            the raw output or logits of the model.
-        weight: a tensor of shape [C,]. The weights attributed
-            to each class.
-        ignore: the class index to ignore.
-    Returns:
-        ce_loss: the weighted multi-class cross-entropy loss.
-    """
-    ce_loss = F.cross_entropy(
-        logits.float(),
-        true.long(),
-        ignore_index=ignore,
-        weight=weights,
-    )
-    return ce_loss
+    def forward(self, target, output, weights=None, ignore_index=None):
+        '''
+        :param target: NxDxHxW LongTensor
+        :param output: NxCxDxHxW Variable
+        :param weights: C FloatTensor
+        :param ignore_index: int index to ignore from loss
+        :return:
+        '''
+        eps = 0.0001
+        encoded_target = output.detach() * 0
+
+        if ignore_index is not None:
+            mask = target == ignore_index
+            target = target.clone()
+            target[mask] = 0
+            encoded_target.scatter_(1, target.unsqueeze(1), 1)
+            mask = mask.unsqueeze(1).expand_as(encoded_target)
+            encoded_target[mask] = 0
+        else:
+            encoded_target.scatter_(1, target.unsqueeze(1), 1)
+
+        if weights is None:
+            weights = 1
+
+        intersection = output * encoded_target
+        numerator = 2 * torch.squeeze(intersection).sum(1).sum(1).sum(1)
+        denominator = output + encoded_target
+
+        if ignore_index is not None:
+            denominator[mask] = 0
+        denominator = torch.squeeze(denominator).sum(1).sum(1).sum(1) + eps
+        loss_per_channel = weights * (1 - (numerator / denominator))
+
+        return loss_per_channel.sum() / loss_per_channel.size(0)
+
+class CELoss(nn.Module):
+    def __init__(self):
+        super(CELoss, self).__init__()
+
+    def forward(self, true, logits, weights, ignore=255):
+        ce_loss = F.cross_entropy(
+            logits.float(),
+            true.long(),
+            ignore_index=ignore,
+            weight=weights,
+        )
+        return ce_loss
