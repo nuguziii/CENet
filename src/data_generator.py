@@ -5,36 +5,50 @@
 #         - BTCV (Abdomen): https://www.synapse.org/#!Synapse:syn3193805 (47)
 
 import random
-import glob
 import os
-import pydicom
-import nibabel as nib
 import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import zoom
+from skimage import feature
 
 from dataset import get_data_filelist, read_dicom, read_nii
 
-root_dir = 'E:\INFINITT'
-
 class LiverDataset(Dataset):
-    def __init__(self, state='train'):
+    def __init__(self, state='train', root_dir='E:\INFINITT\dataset'):
         self.state = state
-        self.im_to_label, self.image_list = get_data_filelist(state)
+        self.im_to_label, self.image_list = get_data_filelist(state, root_dir)
 
     def __getitem__(self, index):
         image_file = self.image_list[index]
         label_file = self.im_to_label[image_file]
         image = self._load_image(image_file)
         label = self._load_image(label_file)
+
         liver_label = self._get_liver_label(label)
 
         # pre-processing
-        seed = random.random() >= 0.8
+        if self.state is 'train':
+            seed = random.random() <= 0.8
+        else:
+            seed = False
         mode = random.uniform(0, 3)
         image = self._transform(self._resize(self._normalize(self._windowing(image))), seed, mode)
-        liver_label = self._transform(self._resize(self._normalize(self._windowing(liver_label))), seed, mode)
-        return image, liver_label
+        liver_label = self._transform(self._resize(liver_label), seed, mode)
+
+        # contour ground truth
+        liver_contour = np.zeros_like(liver_label)
+        for i in range(liver_contour.shape[-1]):
+            liver_contour[:,:,i] = feature.canny(liver_label[:,:,i])
+
+        # shape ground truth (smaller version)
+        liver_shape = zoom(liver_label, 0.5)
+
+        # expand_dims and (c,w,h)
+        image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
+        liver_label = np.transpose(liver_label, (2, 0, 1))
+        liver_shape = np.transpose(liver_shape, (2, 0, 1))
+        liver_contour = np.transpose(liver_contour, (2, 0, 1))
+        return image, liver_label, liver_contour, liver_shape
 
     def __len__(self):
         return len(self.image_list)
@@ -46,7 +60,7 @@ class LiverDataset(Dataset):
             return read_nii(file)
 
     def _get_liver_label(self, label):
-        return (label * (label==6)) / 6
+        return np.ones_like(label) * (label==6)
 
     def _windowing(self, image): # window width = 700
         return np.clip(image, -340, 360)
@@ -58,10 +72,10 @@ class LiverDataset(Dataset):
         return (inp - mean) / std
 
     def _resize(self, image):
-        c, w, h = image.shape
-        factor = (64/c, 128/w, 128/h)
+        w, h, c = image.shape
+        factor = (128/w, 128/h, 64/c)
         image = zoom(image, factor)
-        return image[:64, :128, :128]
+        return image[:128, :128, :64]
 
     def _transform(self, image, seed, mode):
         # flip
@@ -74,12 +88,14 @@ class LiverDataset(Dataset):
                 return np.rot90(image, k=2)
             elif mode==3:
                 return np.rot90(image, k=3)
-        else:
-            return image
+
+        return image
 
     def _cutout(self):
         pass
 
 if __name__ == '__main__':
     data = LiverDataset()
-    image, label = data.__getitem__(1)
+    image, liver_label, liver_contour, liver_shape = data.__getitem__(1)
+
+    print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape)

@@ -9,8 +9,6 @@ import pydicom
 import nibabel as nib
 import numpy as np
 
-root_dir = 'E:\INFINITT\dataset'
-
 def read_dicom(dir):
     file_list = glob.glob(dir + '/*.dcm')
     volume_list = []
@@ -19,9 +17,9 @@ def read_dicom(dir):
     return np.array(volume_list)
 
 def read_nii(filename):
-    return np.transpose(np.array(nib.load(filename).dataobj), (2, 0, 1))
+    return np.array(nib.load(filename).dataobj, dtype=np.uint8)
 
-def get_data_filelist(state):
+def get_data_filelist(state, root_dir):
     '''
     :return: data dictionary {original image path : label image path}
     '''
