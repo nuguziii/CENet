@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class Network(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, n_classes=2):
         super(Network, self).__init__()
         # Base Network
         self.dblock1 = DBlock(in_channels)
@@ -30,8 +31,8 @@ class Network(nn.Module):
         self.upsample3 = nn.Upsample(scale_factor=2, mode='trilinear')
 
         # out transition layer
-        self.out1 = OTLayer(49, in_channels)
-        self.out2 = OTLayer(2, in_channels)
+        self.out1 = OTLayer(50, 2)
+        self.out2 = OTLayer(4, n_classes)
 
     def forward(self, x):
         base_output, contour_input, shape_input = self.BaseNet(x)
@@ -42,7 +43,7 @@ class Network(nn.Module):
         out1 = self.out1(torch.cat((base_output, contour_output), 1))
         out = self.out2(torch.cat((out1, self.upsample3(shape_output)), 1))
 
-        return out, contour_output, shape_output
+        return F.softmax(out), F.softmax(contour_output), F.softmax(shape_output)
 
     def BaseNet(self, x):
         o1 = self.dblock1(x)
@@ -113,7 +114,7 @@ class DTLayer(nn.Module): # deep transition layer (shape and contour)
                                    nn.ReLU())
         self.downtransition = DownTransition(10, 20)
         self.uptransition = UpTransition(40, 10)
-        self.conv4 = nn.Conv3d(20, 1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.conv4 = nn.Conv3d(20, 2, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
         out1 = self.conv1(x)
@@ -138,7 +139,7 @@ class OTLayer(nn.Module): # out-transition layer
         self.conv3 = nn.Sequential(nn.Conv3d(in_channels//2, in_channels//2, kernel_size=5, stride=1, padding=4, dilation=2),
                                    nn.BatchNorm3d(in_channels//2),
                                    nn.ReLU())
-        self.conv4 = nn.Conv3d(in_channels//2, out_channels, kernel_size=5, stride=1, padding=4, dilation=2)
+        self.conv4 = nn.Conv3d(3*(in_channels//2), out_channels, kernel_size=5, stride=1, padding=4, dilation=2)
 
     def forward(self, x):
         out1 = self.conv1(x)
