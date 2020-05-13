@@ -105,7 +105,8 @@ def train(opt):
 
             # update
             dsc_val, pred = validate(output, label)
-            save_img_to_nib(pred, final_output_dir, str(idx))
+            if (idx+1)%10==0:
+                save_img_to_nib(pred, final_output_dir, str(idx))
 
             dsc.update(dsc_val, 1)
             losses.update(loss.item(), image.size(0))
@@ -118,7 +119,7 @@ def train(opt):
                   'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                   'Loss {loss.val:.5f} (out:{out:.3f}/c:{c:.3f}/s:{s:.3f})\t' \
                   'DSC {dsc.val: .2f}'.format(
-                    epoch, idx, len(train_loader), batch_time=batch_time,
+                    epoch+1, idx+1, len(train_loader), batch_time=batch_time,
                     speed=image.size(0) / batch_time.val,
                     data_time=data_time,
                     loss=losses, out=output_loss.item(), c=contour_loss.item(), s=shape_loss.item(),

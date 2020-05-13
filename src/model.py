@@ -38,7 +38,7 @@ class Network(nn.Module):
         base_output, contour_input, shape_input = self.BaseNet(x)
         contour_output = self.contour(contour_input)
         shape_output1 = self.shape1(shape_input)
-        shape_output2 = self.shape1(shape_input)
+        shape_output2 = self.shape2(shape_input)
         shape_output = shape_output1 - shape_output2
         out1 = self.out1(torch.cat((base_output, contour_output), 1))
         out = self.out2(torch.cat((out1, self.upsample3(shape_output)), 1))
@@ -139,7 +139,7 @@ class OTLayer(nn.Module): # out-transition layer
         self.conv3 = nn.Sequential(nn.Conv3d(in_channels//2, in_channels//2, kernel_size=5, stride=1, padding=4, dilation=2),
                                    nn.BatchNorm3d(in_channels//2),
                                    nn.ReLU())
-        self.conv4 = nn.Conv3d(3*(in_channels//2), out_channels, kernel_size=5, stride=1, padding=4, dilation=2)
+        self.conv4 = nn.Conv3d(3*(in_channels//2), out_channels, kernel_size=1, stride=1, padding=0, dilation=1)
 
     def forward(self, x):
         out1 = self.conv1(x)
