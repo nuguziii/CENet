@@ -27,10 +27,10 @@ class LiverDataset(Dataset):
         liver_label = self._get_liver_label(label)
 
         # pre-processing
-        if self.state is 'train':
-            seed = random.random() <= 0.8
-        else:
+        if self.state is 'test':
             seed = False
+        else:
+            seed = random.random() <= 0.8
         mode = random.uniform(0, 3)
         image = self._transform(self._resize(self._normalize(self._windowing(image))), seed, mode)
         liver_label = self._transform(self._resize(liver_label), seed, mode)
