@@ -29,7 +29,7 @@ def create_logger(opt, phase='train'):
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
 
-    tensorboard_log_dir = Path(opt.log_dir) / (opt.description + '_' + time_str)
+    tensorboard_log_dir = Path(opt.log_dir) / opt.description
 
     print('=> creating {}'.format(tensorboard_log_dir))
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)

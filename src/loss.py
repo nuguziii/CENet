@@ -73,7 +73,7 @@ class DiceLoss(nn.Module):
             encoded_target.scatter_(1, target.unsqueeze(1), 1)
 
         if weights is None:
-            weights = weights = torch.Tensor([0, 1.0]).type(torch.cuda.FloatTensor)
+            weights = torch.Tensor([0.4, 0.6]).type(torch.cuda.FloatTensor)
 
         intersection = output * encoded_target
         numerator = 2 * torch.squeeze(intersection).sum(1).sum(1).sum(1)
