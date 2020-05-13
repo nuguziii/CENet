@@ -40,7 +40,7 @@ def test(opt):
     logger.info("=> loading model '{}'".format(model_file))
     model.load_state_dict(torch.load(model_file), strict=False)
 
-    model.eval()
+    #model.eval()
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -55,27 +55,22 @@ def test(opt):
         data_time.update(time.time() - end)
 
         # test model
+        model.eval()
         output, _, _ = model(image)
 
-        output = np.transpose(np.squeeze(output.detach().cpu().numpy(), axis=0), (0,2,3,1))
-        output = pred_image(output).astype(np.float)
+        pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
+        pred = pred_image(pred).astype(np.float)
+        lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
 
-        label = np.transpose(np.squeeze(label.detach().cpu().numpy(), axis=0), (1,2,0)).astype(np.float)
-
-        cur_dc_val = dc(output, label)
-        cur_hd_val = hd(output, label)
-        cur_assd_val = assd(output, label)
-        cur_s_val = sensitivity(output, label)
-        cur_p_val = precision(output, label)
-
-        dc_val.update(cur_dc_val, 1)
-        hd_val.update(cur_hd_val, 1)
-        assd_val.update(cur_assd_val, 1)
-        s_val.update(cur_s_val, 1)
-        p_val.update(cur_p_val, 1)
+        dc_val.update(dc(pred, lab), 1)
+        #hd_val.update(hd(pred, lab), 1)
+        #assd_val.update(assd(pred, lab), 1)
+        #s_val.update(sensitivity(pred, lab), 1)
+        #p_val.update(precision(pred, lab), 1)
 
         # save result
-        save_img_to_nib(output, result_dir, 'img'+str(idx+1))
+        save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))
+        save_img_to_nib(lab, result_dir, 'lab' + str(idx + 1))
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -84,14 +79,14 @@ def test(opt):
               'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
               'Speed {speed:.1f} samples/s\t' \
               'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
-              'DC {dc:.2f}\t\t' \
-              'HD {hd:.2f}\t' \
-              'ASSD {assd:.2f}\t' \
-              'Sensitivity {s:.2f}\t' \
-              'Precision {p:.2f}\t'.format(
+              'DC {dc.val:.2f}\t\t' \
+              'HD {hd.val:.2f}\t' \
+              'ASSD {assd.val:.2f}\t' \
+              'Sensitivity {s.val:.2f}\t' \
+              'Precision {p.val:.2f}\t'.format(
                 idx, len(test_loader), batch_time=batch_time,
                 speed=image.size(0) / batch_time.val,
-                data_time=data_time, dc=cur_dc_val, hd=cur_hd_val, assd=cur_assd_val, s=cur_s_val, p=cur_p_val)
+                data_time=data_time, dc=dc_val, hd=hd_val, assd=assd_val, s=s_val, p=p_val)
         logger.info(msg)
 
     msg = '[total]\t' \
