@@ -21,7 +21,7 @@ def validate(output, label):
     pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
     pred = pred_image(pred).astype(np.float)
     lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
-    return dc(pred, lab)
+    return dc(pred, lab), pred
 
 def train(opt):
     logger, final_output_dir, tb_log_dir = create_logger(opt, 'train')
@@ -90,7 +90,7 @@ def train(opt):
             label = label.type(torch.cuda.LongTensor)
             contour_label = contour_label.type(torch.cuda.LongTensor)
             shape_label = shape_label.type(torch.cuda.LongTensor)
-            class_weights = torch.Tensor([0.6, 1.0]).type(torch.cuda.FloatTensor)
+            class_weights = torch.Tensor([0.4, 0.6]).type(torch.cuda.FloatTensor)
 
             # train for one epoch
             output, contour_output, shape_output = model(image)
@@ -104,7 +104,10 @@ def train(opt):
             optimizer.step()
 
             # update
-            dsc.update(validate(output, label), 1)
+            dsc_val, pred = validate(output, label)
+            save_img_to_nib(pred, final_output_dir, str(idx))
+
+            dsc.update(dsc_val, 1)
             losses.update(loss.item(), image.size(0))
             batch_time.update(time.time() - end)
             end = time.time()
