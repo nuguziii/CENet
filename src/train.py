@@ -90,7 +90,9 @@ def train(opt):
             label = label.type(torch.cuda.LongTensor)
             contour_label = contour_label.type(torch.cuda.LongTensor)
             shape_label = shape_label.type(torch.cuda.LongTensor)
-            class_weights = torch.Tensor([0.4, 0.6]).type(torch.cuda.FloatTensor)
+
+            true_class = np.round_(float(label.sum()) / label.reshape((-1)).size(0), 2)
+            class_weights = torch.Tensor([true_class, 1-true_class]).type(torch.cuda.FloatTensor)
 
             # train for one epoch
             output, contour_output, shape_output = model(image)
@@ -147,10 +149,12 @@ def train(opt):
             'best_state_dict': model.module.state_dict(),
             'perf': pref_indicator,
             'optimizer': optimizer.state_dict(),
-        }, best_model, final_output_dir)
+        }, best_model, final_output_dir, model, epoch+1)
 
         writer.add_scalar('loss', losses.avg, epoch+1)
         writer.add_scalar('DSC', dsc.avg, epoch+1)
+        writer.add_scalar('p', p, epoch + 1)
+        writer.add_scalar('LR', lr_scheduler.get_lr(), epoch + 1)
 
     final_model_state_file = os.path.join(
         final_output_dir, 'final_state.pth'

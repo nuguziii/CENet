@@ -41,12 +41,16 @@ def create_logger(opt, phase='train'):
 
     return logger, str(final_output_dir), str(tensorboard_log_dir)
 
-def save_checkpoint(states, is_best, output_dir,
+def save_checkpoint(states, is_best, output_dir, model, epoch,
                     filename='checkpoint.pth'):
-    torch.save(states, os.path.join(output_dir, filename))
+    if epoch%10==0:
+        torch.save(states, os.path.join(output_dir, filename+'_'+str(epoch)))
+    else:
+        torch.save(states, os.path.join(output_dir, filename))
     if is_best and 'state_dict' in states:
         torch.save(states['best_state_dict'],
-                   os.path.join(output_dir, 'model_best.pth'))
+                   os.path.join(output_dir, 'model_best_state_dict.pth'))
+        torch.save(model, os.path.join(output_dir, 'model_best.pth'))
 
 def save_img_to_nib(img, path, file_name):
     # img = (w, h, d)
