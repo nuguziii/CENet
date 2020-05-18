@@ -38,8 +38,8 @@ def test(opt):
     )
 
     logger.info("=> loading model '{}'".format(model_file))
-    model.load_state_dict(torch.load(model_file), strict=False)
-
+    model = torch.load(model_file)
+    model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
     #model.eval()
 
     batch_time = AverageMeter()
@@ -63,10 +63,10 @@ def test(opt):
         lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
 
         dc_val.update(dc(pred, lab), 1)
-        #hd_val.update(hd(pred, lab), 1)
-        #assd_val.update(assd(pred, lab), 1)
-        #s_val.update(sensitivity(pred, lab), 1)
-        #p_val.update(precision(pred, lab), 1)
+        hd_val.update(hd(pred, lab), 1)
+        assd_val.update(assd(pred, lab), 1)
+        s_val.update(sensitivity(pred, lab), 1)
+        p_val.update(precision(pred, lab), 1)
 
         # save result
         save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))

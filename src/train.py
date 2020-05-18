@@ -81,15 +81,17 @@ def train(opt):
         batch_time = AverageMeter()
         data_time = AverageMeter()
 
+        lr_scheduler.step()
+
         end = time.time()
         for idx, (image, label, contour_label, shape_label) in enumerate(train_loader):
             data_time.update(time.time() - end)
-            lr_scheduler.step()
 
             image = image.type(torch.cuda.FloatTensor)
             label = label.type(torch.cuda.LongTensor)
             contour_label = contour_label.type(torch.cuda.LongTensor)
             shape_label = shape_label.type(torch.cuda.LongTensor)
+
 
             true_class = np.round_(float(label.sum()) / label.reshape((-1)).size(0), 2)
             class_weights = torch.Tensor([true_class, 1-true_class]).type(torch.cuda.FloatTensor)
