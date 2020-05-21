@@ -35,9 +35,9 @@ class DiceLoss(nn.Module):
             weights = 1
 
         intersection = output * encoded_target
-        numerator = 2 * torch.squeeze(intersection).sum(2).sum(2).sum(2)
+        numerator = 2 * intersection.sum(2).sum(2).sum(2)
         denominator = output + encoded_target
-        denominator = torch.squeeze(denominator).sum(2).sum(2).sum(2) + eps
+        denominator = denominator.sum(2).sum(2).sum(2) + eps
         loss_per_channel = weights * (1 - (numerator / denominator))
 
         return loss_per_channel.sum() / loss_per_channel.size(0)
