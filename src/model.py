@@ -152,7 +152,9 @@ class OTLayer(nn.Module): # out-transition layer
 class DownTransition(nn.Module): # Down Transition layer in base network
     def __init__(self, in_channels, out_channels):
         super(DownTransition, self).__init__()
-        self.down_conv = nn.Conv3d(in_channels, out_channels, kernel_size=2, stride=2)
+        self.down_conv = nn.Sequential(nn.Conv3d(in_channels, out_channels, kernel_size=2, stride=2),
+                                       nn.BatchNorm3d(out_channels),
+                                       nn.ReLU())
 
     def forward(self, x):
         return self.down_conv(x)
@@ -160,14 +162,14 @@ class DownTransition(nn.Module): # Down Transition layer in base network
 class UpTransition(nn.Module): # Up Transition layer in base network
     def __init__(self, in_channels, out_channels):
         super(UpTransition, self).__init__()
-        self.up_conv = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=2, stride=2)
+        self.up_conv = nn.Sequential(nn.ConvTranspose3d(in_channels, out_channels, kernel_size=2, stride=2),
+                                     nn.BatchNorm3d(out_channels),
+                                     nn.ReLU())
 
     def forward(self, x):
         return self.up_conv(x)
 
-
 if __name__=="__main__":
-
     from torchsummary import summary
     device = "cuda"
     model = Network(1)
