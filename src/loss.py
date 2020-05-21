@@ -5,7 +5,7 @@ from torch.nn import functional as F
 class Loss(nn.Module):
     def __init__(self):
         super(Loss, self).__init__()
-        self.dice_loss = DiceLoss().cuda()
+        self.dice_loss = SoftDiceLoss().cuda()
         self.ce_loss = CELoss().cuda()
 
     def forward(self, output, shape_output, contour_output, gt, contour_gt, shape_gt, class_weights):
@@ -14,9 +14,9 @@ class Loss(nn.Module):
         contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
         return output_loss, shape_loss, contour_loss
 
-class DiceLoss(nn.Module):
+class SoftDiceLoss(nn.Module):
     def __init__(self):
-        super(DiceLoss, self).__init__()
+        super(SoftDiceLoss, self).__init__()
 
     def forward(self, target, output, weights=None):
         '''
@@ -39,6 +39,22 @@ class DiceLoss(nn.Module):
         denominator = output + encoded_target
         denominator = denominator.sum(2).sum(2).sum(2) + eps
         loss_per_channel = weights * (1 - (numerator / denominator))
+
+        return loss_per_channel.sum() / loss_per_channel.size(0)
+
+class DiceLoss(nn.Module):
+    def __init__(self):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, target, output, weights=None):
+        eps = 0.0001
+        _, output = output.max(1)
+
+        intersection = output * target
+        numerator = 2 * intersection.sum(1).sum(1).sum(1)
+        denominator = output + target
+        denominator = denominator.sum(1).sum(1).sum(1) + eps
+        loss_per_channel = 1 - (numerator / denominator)
 
         return loss_per_channel.sum() / loss_per_channel.size(0)
 
