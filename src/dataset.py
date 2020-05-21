@@ -46,4 +46,4 @@ def get_data_filelist(state, root_dir):
 if __name__ == '__main__':
     #print(read_nii('E:\INFINITT\zenodo\\tcia\label0002.nii.gz').shape)
     #print(read_dicom('E:\INFINITT\TCIA\Pancreas-CT\PANCREAS_0001\\11-24-2015-PANCREAS0001-Pancreas-18957\Pancreas-99667').shape)
-    get_data_filelist('train')
+    get_data_filelist('test', 'E:\INFINITT\dataset')

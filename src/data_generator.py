@@ -10,13 +10,16 @@ import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import zoom
 from skimage import feature
+import cv2
 
 from dataset import get_data_filelist, read_dicom, read_nii
+from utils import save_img_to_nib
 
 class LiverDataset(Dataset):
-    def __init__(self, state='train', root_dir='E:\INFINITT\dataset'):
+    def __init__(self, state='train', root_dir='E:\INFINITT\dataset', imShow=False):
         self.state = state
         self.im_to_label, self.image_list = get_data_filelist(state, root_dir)
+        self.imShow = imShow
 
     def __getitem__(self, index):
         image_file = self.image_list[index]
@@ -35,6 +38,9 @@ class LiverDataset(Dataset):
         image = self._transform(self._resize(self._normalize(self._windowing(image))), seed, mode)
         liver_label = self._transform(self._resize(liver_label), seed, mode)
 
+        if self.imShow:
+            save_img_to_nib(image, './', 'test_img')
+
         # contour ground truth
         liver_contour = np.zeros_like(liver_label)
         for i in range(liver_contour.shape[-1]):
@@ -48,6 +54,7 @@ class LiverDataset(Dataset):
         liver_label = np.transpose(liver_label, (2, 0, 1))
         liver_shape = np.transpose(liver_shape, (2, 0, 1))
         liver_contour = np.transpose(liver_contour, (2, 0, 1))
+
         return image, liver_label, liver_contour, liver_shape
 
     def __len__(self):
@@ -77,6 +84,12 @@ class LiverDataset(Dataset):
         image = zoom(image, factor)
         return image[:128, :128, :64]
 
+    def _eq_hist(self, image):
+        eq = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(20,20))
+        for i in range(image.shape[2]):
+            image[:,:,i] = eq.apply(image[:,:,i].astype(np.uint8))
+        return image
+
     def _transform(self, image, seed, mode):
         # flip
         if seed:
@@ -95,7 +108,7 @@ class LiverDataset(Dataset):
         pass
 
 if __name__ == '__main__':
-    data = LiverDataset()
+    data = LiverDataset(imShow=True)
     image, liver_label, liver_contour, liver_shape = data.__getitem__(1)
 
     print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape)
