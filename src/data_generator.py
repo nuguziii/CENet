@@ -16,7 +16,7 @@ from dataset import get_data_filelist, read_dicom, read_nii_8, read_nii_16
 from utils import save_img_to_nib
 
 class LiverDataset(Dataset):
-    def __init__(self, state='train', root_dir='E:\INFINITT\dataset', imShow=True):
+    def __init__(self, state='train', root_dir='E:\INFINITT\dataset', imShow=False):
         self.state = state
         self.im_to_label, self.image_list = get_data_filelist(state, root_dir)
         self.imShow = imShow
