@@ -52,11 +52,15 @@ def test(opt):
         data_time.update(time.time() - end)
 
         # test model
-        output, _, _ = model(image)
+        output, coutour_output, shape_output = model(image)
 
         pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
         pred = pred_image(pred).astype(np.float)
         lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
+        shape_output = np.transpose(shape_output.detach().cpu().numpy()[0], (0, 2, 3, 1))
+        shape_output = pred_image(shape_output).astype(np.float)
+        coutour_output = np.transpose(coutour_output.detach().cpu().numpy()[0], (0, 2, 3, 1))
+        coutour_output = pred_image(coutour_output).astype(np.float)
 
         dc_val.update(dc(pred, lab), 1)
         hd_val.update(hd(pred, lab), 1)
@@ -67,6 +71,8 @@ def test(opt):
         # save result
         save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))
         save_img_to_nib(lab, result_dir, 'lab' + str(idx + 1))
+        save_img_to_nib(shape_output, result_dir, 'shape' + str(idx + 1))
+        save_img_to_nib(coutour_output, result_dir, 'contour' + str(idx + 1))
 
         # visualize
         vis = visualize(pred, lab)
