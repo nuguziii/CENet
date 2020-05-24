@@ -11,7 +11,7 @@ import numpy as np
 
 from model import Network
 from data_generator import LiverDataset
-from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image
+from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image, visualize
 from evaluate import dc, hd, assd, sensitivity, precision
 
 def test(opt):
@@ -19,9 +19,6 @@ def test(opt):
 
     logger.info(pprint.pformat(opt))
     logger.info(opt)
-
-    model = Network(in_channels=1)
-    model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
 
     # Data loading code
     test_dataset = LiverDataset('test', opt.data_dir)
@@ -39,8 +36,8 @@ def test(opt):
 
     logger.info("=> loading model '{}'".format(model_file))
     model = torch.load(model_file)
-    model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
-    #model.eval()
+    #model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
+    model.eval()
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -55,7 +52,6 @@ def test(opt):
         data_time.update(time.time() - end)
 
         # test model
-        model.eval()
         output, _, _ = model(image)
 
         pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
@@ -71,6 +67,10 @@ def test(opt):
         # save result
         save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))
         save_img_to_nib(lab, result_dir, 'lab' + str(idx + 1))
+
+        # visualize
+        vis = visualize(pred, lab)
+        save_img_to_nib(vis, result_dir, 'vis' + str(idx + 1))
 
         batch_time.update(time.time() - end)
         end = time.time()
