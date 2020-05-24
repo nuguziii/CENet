@@ -39,7 +39,8 @@ class LiverDataset(Dataset):
         liver_label = self._transform(self._resize(liver_label), seed, mode)
 
         if self.imShow:
-            save_img_to_nib(image, './', 'test_img')
+            save_img_to_nib(image, './', 'test_img_'+str(index))
+            save_img_to_nib(liver_label, './', 'test_label_'+str(index))
 
         # contour ground truth
         liver_contour = np.zeros_like(liver_label)
@@ -73,7 +74,7 @@ class LiverDataset(Dataset):
         return np.clip(image, -340, 360)
 
     def _normalize(self, image):
-        inp = (image.astype(np.float32) / 700.)
+        inp = ((image.astype(np.float32) + 340) / 700.)
         mean = np.mean(inp)
         std = np.std(inp)
         return (inp - mean) / std
@@ -85,7 +86,7 @@ class LiverDataset(Dataset):
         return image[:128, :128, :64]
 
     def _eq_hist(self, image):
-        eq = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(20,20))
+        eq = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(50,50))
         for i in range(image.shape[2]):
             image[:,:,i] = eq.apply(image[:,:,i].astype(np.uint8))
         return image
@@ -109,6 +110,7 @@ class LiverDataset(Dataset):
 
 if __name__ == '__main__':
     data = LiverDataset(imShow=True)
-    image, liver_label, liver_contour, liver_shape = data.__getitem__(1)
 
-    print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape)
+    for i in range(20):
+        image, liver_label, liver_contour, liver_shape = data.__getitem__(3*i)
+        print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape, np.histogram(liver_label))
