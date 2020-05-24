@@ -46,10 +46,16 @@ class LiverDataset(Dataset):
         # contour ground truth
         liver_contour = np.zeros_like(liver_label)
         for i in range(liver_contour.shape[-1]):
-            liver_contour[:,:,i] = feature.canny(liver_label[:,:,i])
+            liver_contour[:,:,i] = feature.canny(liver_label[:,:,i]*255)
 
         # shape ground truth (smaller version)
         liver_shape = zoom(liver_label, 0.5)
+
+        if self.imShow:
+            save_img_to_nib(image, './', 'test_img_'+str(index))
+            save_img_to_nib(liver_label, './', 'test_label_'+str(index))
+            save_img_to_nib(liver_contour, './', 'test_contour_' + str(index))
+            save_img_to_nib(liver_shape, './', 'test_shape_' + str(index))
 
         # expand_dims and (c,w,h)
         image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
@@ -57,7 +63,7 @@ class LiverDataset(Dataset):
         liver_shape = np.transpose(liver_shape, (2, 0, 1))
         liver_contour = np.transpose(liver_contour, (2, 0, 1))
 
-        return image, liver_label, liver_contour, liver_shape
+        return image.copy(), liver_label.copy(), liver_contour.copy(), liver_shape.copy()
 
     def __len__(self):
         return len(self.image_list)
