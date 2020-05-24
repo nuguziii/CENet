@@ -16,7 +16,7 @@ from dataset import get_data_filelist, read_dicom, read_nii_8, read_nii_16
 from utils import save_img_to_nib
 
 class LiverDataset(Dataset):
-    def __init__(self, state='train', root_dir='E:\INFINITT\dataset', imShow=False):
+    def __init__(self, state='train', root_dir='E:\INFINITT\dataset', imShow=True):
         self.state = state
         self.im_to_label, self.image_list = get_data_filelist(state, root_dir)
         self.imShow = imShow
@@ -24,10 +24,10 @@ class LiverDataset(Dataset):
     def __getitem__(self, index):
         image_file = self.image_list[index]
         label_file = self.im_to_label[image_file]
-        image = read_nii_16(image_file)
-        label = read_nii_8(label_file)
+        image_original = read_nii_16(image_file)
+        label_original = read_nii_8(label_file)
 
-        liver_label = self._get_liver_label(label)
+        liver_label = self._get_liver_label(label_original)
 
         # pre-processing
         if self.state is 'test':
@@ -36,12 +36,8 @@ class LiverDataset(Dataset):
             seed = random.random() <= 0.8
         mode = int(random.uniform(0, 4))
 
-        image = self._transform(self._resize(self._normalize(self._windowing(image))), seed, mode)
-        liver_label = self._transform(self._resize(liver_label), seed, mode)
-
-        if self.imShow:
-            save_img_to_nib(image, './', 'test_img_'+str(index))
-            save_img_to_nib(liver_label, './', 'test_label_'+str(index))
+        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original))), seed, mode))
+        liver_label = self._clip(self._transform(self._resize(liver_label), seed, mode))
 
         # contour ground truth
         liver_contour = np.zeros_like(liver_label)
@@ -49,7 +45,7 @@ class LiverDataset(Dataset):
             liver_contour[:,:,i] = feature.canny(liver_label[:,:,i]*255)
 
         # shape ground truth (smaller version)
-        liver_shape = zoom(liver_label, 0.5)
+        liver_shape = self._clip(zoom(liver_label, 0.5))
 
         if self.imShow:
             save_img_to_nib(image, './', 'test_img_'+str(index))
@@ -63,7 +59,7 @@ class LiverDataset(Dataset):
         liver_shape = np.transpose(liver_shape, (2, 0, 1))
         liver_contour = np.transpose(liver_contour, (2, 0, 1))
 
-        return image.copy(), liver_label.copy(), liver_contour.copy(), liver_shape.copy()
+        return image, liver_label, liver_contour, liver_shape
 
     def __len__(self):
         return len(self.image_list)
@@ -75,11 +71,10 @@ class LiverDataset(Dataset):
         return np.clip(image, -340, 360)
 
     def _normalize(self, image):
-        inp = ((image.astype(np.float32) + 340) / 700.)
+        return ((image.astype(np.float32) + 340) / 700.)
         #mean = np.mean(inp)
         #std = np.std(inp)
         #return (inp - mean) / std
-        return inp
 
     def _resize(self, image):
         w, h, c = image.shape
@@ -109,6 +104,9 @@ class LiverDataset(Dataset):
 
     def _cutout(self):
         pass
+
+    def _clip(self, image):
+        return np.clip(image, 0, 1)
 
 if __name__ == '__main__':
     data = LiverDataset(imShow=True)
