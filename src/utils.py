@@ -61,10 +61,15 @@ def pred_image(img):
     # img = (c, w, h, d)
     return np.argmax(img, axis=0)
 
-def visualize(pred, label): # (128, 128, 64)
+def visualize_compare(pred, label): # (128, 128, 64)
     pred = 0.7 * pred
     label = 0.3 * label
     return pred + label
+
+def visualize(image, pred):
+    return image * pred
+
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

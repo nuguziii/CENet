@@ -11,7 +11,7 @@ import numpy as np
 
 from model import Network
 from data_generator import LiverDataset
-from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image, visualize
+from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image, visualize_compare, visualize
 from evaluate import dc, hd, assd, sensitivity, precision
 
 def test(opt):
@@ -54,6 +54,7 @@ def test(opt):
         # test model
         output, coutour_output, shape_output = model(image)
 
+        img = np.transpose(image.detach().cpu().numpy()[0,0], (1, 2, 0)).astype(np.float)
         pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
         pred = pred_image(pred).astype(np.float)
         lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
@@ -75,8 +76,12 @@ def test(opt):
         save_img_to_nib(coutour_output, result_dir, 'contour' + str(idx + 1))
 
         # visualize
-        vis = visualize(pred, lab)
-        save_img_to_nib(vis, result_dir, 'vis' + str(idx + 1))
+        vis_cmp = visualize_compare(pred, lab)
+        save_img_to_nib(vis_cmp, result_dir, 'vis_cmp' + str(idx + 1))
+
+        vis = visualize(img, pred)
+        save_img_to_nib(vis, result_dir, 'masked_img' + str(idx + 1))
+
 
         batch_time.update(time.time() - end)
         end = time.time()
