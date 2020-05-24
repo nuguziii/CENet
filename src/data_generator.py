@@ -12,7 +12,7 @@ from scipy.ndimage import zoom
 from skimage import feature
 import cv2
 
-from dataset import get_data_filelist, read_dicom, read_nii
+from dataset import get_data_filelist, read_dicom, read_nii_8, read_nii_16
 from utils import save_img_to_nib
 
 class LiverDataset(Dataset):
@@ -24,8 +24,8 @@ class LiverDataset(Dataset):
     def __getitem__(self, index):
         image_file = self.image_list[index]
         label_file = self.im_to_label[image_file]
-        image = self._load_image(image_file)
-        label = self._load_image(label_file)
+        image = read_nii_16(image_file)
+        label = read_nii_8(label_file)
 
         liver_label = self._get_liver_label(label)
 
@@ -34,7 +34,8 @@ class LiverDataset(Dataset):
             seed = False
         else:
             seed = random.random() <= 0.8
-        mode = random.uniform(0, 3)
+        mode = int(random.uniform(0, 4))
+
         image = self._transform(self._resize(self._normalize(self._windowing(image))), seed, mode)
         liver_label = self._transform(self._resize(liver_label), seed, mode)
 
@@ -61,12 +62,6 @@ class LiverDataset(Dataset):
     def __len__(self):
         return len(self.image_list)
 
-    def _load_image(self, file):
-        if os.path.isdir(file):
-            return read_dicom(file)
-        else:
-            return read_nii(file)
-
     def _get_liver_label(self, label):
         return np.ones_like(label) * (label==6)
 
@@ -75,9 +70,10 @@ class LiverDataset(Dataset):
 
     def _normalize(self, image):
         inp = ((image.astype(np.float32) + 340) / 700.)
-        mean = np.mean(inp)
-        std = np.std(inp)
-        return (inp - mean) / std
+        #mean = np.mean(inp)
+        #std = np.std(inp)
+        #return (inp - mean) / std
+        return inp
 
     def _resize(self, image):
         w, h, c = image.shape
@@ -86,9 +82,9 @@ class LiverDataset(Dataset):
         return image[:128, :128, :64]
 
     def _eq_hist(self, image):
-        eq = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(50,50))
+        eq = cv2.equalizeHist(image)
         for i in range(image.shape[2]):
-            image[:,:,i] = eq.apply(image[:,:,i].astype(np.uint8))
+            image[:,:,i] = cv2.equalizeHist(image[:,:,i].astype(np.uint16))
         return image
 
     def _transform(self, image, seed, mode):
@@ -111,6 +107,7 @@ class LiverDataset(Dataset):
 if __name__ == '__main__':
     data = LiverDataset(imShow=True)
 
-    for i in range(20):
+    for i in range(3):
+        print(i)
         image, liver_label, liver_contour, liver_shape = data.__getitem__(3*i)
-        print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape, np.histogram(liver_label))
+        #print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape, np.histogram(liver_label))

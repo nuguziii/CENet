@@ -16,8 +16,11 @@ def read_dicom(dir):
         volume_list.append(pydicom.dcmread(filename).pixel_array)
     return np.array(volume_list)
 
-def read_nii(filename):
+def read_nii_8(filename):
     return np.array(nib.load(filename).dataobj, dtype=np.uint8)
+
+def read_nii_16(filename):
+    return np.array(nib.load(filename).dataobj, dtype=np.int16)
 
 def get_data_filelist(state, root_dir):
     '''
