@@ -16,6 +16,7 @@ from data_generator import LiverDataset
 from loss import Loss
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image
 from evaluate import dc, hd, assd, sensitivity, precision
+from unet3d.model import ResidualUNet3D
 
 def validate(output, label):
     pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
@@ -30,7 +31,10 @@ def train(opt):
 
     writer = SummaryWriter(log_dir=tb_log_dir)
 
-    model = Network(in_channels=1)
+    # CENEt
+    #model = Network(in_channels=1)
+    # 3DUNet
+    model = ResidualUNet3D(in_channels=1, out_channels=2)
     model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
 
     # define loss function (criterion) and optimizer
@@ -85,24 +89,21 @@ def train(opt):
         lr_scheduler.step()
 
         end = time.time()
-        for idx, (image, label, contour_label, shape_label) in enumerate(train_loader):
+        for idx, (image, label) in enumerate(train_loader):
             data_time.update(time.time() - end)
 
             image = image.type(torch.cuda.FloatTensor)
             label = label.type(torch.cuda.LongTensor)
-            contour_label = contour_label.type(torch.cuda.LongTensor)
-            shape_label = shape_label.type(torch.cuda.LongTensor)
-
 
             true_class = np.round_(float(label.sum()) / label.reshape((-1)).size(0), 2)
             class_weights = torch.Tensor([true_class, 1-true_class]).type(torch.cuda.FloatTensor)
 
             # train for one epoch
-            output, contour_output, shape_output = model(image)
+            output = model(image)
 
-            contour_label_tilde = contour_label * (output[:,1] < p).type(torch.cuda.LongTensor)
-            output_loss, shape_loss, contour_loss = criterion(output, shape_output, contour_output, label, contour_label_tilde, shape_label, class_weights)
-            loss = output_loss + shape_loss + contour_loss
+            #contour_label_tilde = contour_label * (output[:,1] < p).type(torch.cuda.LongTensor)
+            loss = criterion(output, label, class_weights)
+            #loss = output_loss + shape_loss + contour_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -122,12 +123,12 @@ def train(opt):
                   'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
                   'Speed {speed:.1f} samples/s\t' \
                   'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
-                  'Loss {loss.val:.5f} (out:{out:.3f}/c:{c:.3f}/s:{s:.3f})\t' \
+                  'Loss {loss.val:.5f}\t' \
                   'DSC {dsc.val: .2f}'.format(
                     epoch+1, idx+1, len(train_loader), batch_time=batch_time,
                     speed=image.size(0) / batch_time.val,
                     data_time=data_time,
-                    loss=losses, out=output_loss.item(), c=contour_loss.item(), s=shape_loss.item(),
+                    loss=losses,
                     dsc=dsc)
             logger.info(msg)
 

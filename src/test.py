@@ -9,7 +9,6 @@ import torch.utils.data
 import torch.utils.data.distributed
 import numpy as np
 
-from model import Network
 from data_generator import LiverDataset
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image, visualize_compare, visualize
 from evaluate import dc, hd, assd, sensitivity, precision
@@ -48,20 +47,16 @@ def test(opt):
     p_val = AverageMeter()
 
     end = time.time()
-    for idx, (image, label, contour_label, shape_label) in enumerate(test_loader):
+    for idx, (image, label) in enumerate(test_loader):
         data_time.update(time.time() - end)
 
         # test model
-        output, coutour_output, shape_output = model(image)
+        output = model(image)
 
         img = np.transpose(image.detach().cpu().numpy()[0,0], (1, 2, 0)).astype(np.float)
         pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
         pred = pred_image(pred).astype(np.float)
         lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
-        shape_output = np.transpose(shape_output.detach().cpu().numpy()[0], (0, 2, 3, 1))
-        shape_output = pred_image(shape_output).astype(np.float)
-        coutour_output = np.transpose(coutour_output.detach().cpu().numpy()[0], (0, 2, 3, 1))
-        coutour_output = pred_image(coutour_output).astype(np.float)
 
         dc_val.update(dc(pred, lab), 1)
         hd_val.update(hd(pred, lab), 1)
@@ -72,8 +67,6 @@ def test(opt):
         # save result
         save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))
         save_img_to_nib(lab, result_dir, 'lab' + str(idx + 1))
-        save_img_to_nib(shape_output, result_dir, 'shape' + str(idx + 1))
-        save_img_to_nib(coutour_output, result_dir, 'contour' + str(idx + 1))
 
         # visualize
         vis_cmp = visualize_compare(pred, lab)

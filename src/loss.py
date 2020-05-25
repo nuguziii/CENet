@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.autograd import Variable
 
 class Loss(nn.Module):
     def __init__(self):
@@ -8,11 +9,11 @@ class Loss(nn.Module):
         self.dice_loss = SoftDiceLoss().cuda()
         self.ce_loss = CELoss().cuda()
 
-    def forward(self, output, shape_output, contour_output, gt, contour_gt, shape_gt, class_weights):
+    def forward(self, output, gt, class_weights):
         output_loss = self.dice_loss(gt, output, class_weights)
-        shape_loss = self.dice_loss(shape_gt, shape_output, class_weights)
-        contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
-        return output_loss, shape_loss, contour_loss
+        #shape_loss = self.dice_loss(shape_gt, shape_output, class_weights)
+        #contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
+        return output_loss  #, shape_loss, contour_loss
 
 class SoftDiceLoss(nn.Module):
     def __init__(self):
@@ -28,7 +29,6 @@ class SoftDiceLoss(nn.Module):
         '''
         eps = 0.0001
         encoded_target = output.detach() * 0
-
         encoded_target.scatter_(1, target.unsqueeze(1), 1)
 
         if weights is None:
