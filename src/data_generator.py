@@ -9,6 +9,7 @@ import os
 import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import zoom
+from scipy.ndimage.interpolation import rotate
 from skimage import feature
 import cv2
 
@@ -36,8 +37,8 @@ class LiverDataset(Dataset):
             seed = random.random() <= 0.8
         mode = int(random.uniform(0, 4))
 
-        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original))), seed, mode))
-        liver_label = self._clip(self._transform(self._resize(liver_label), seed, mode))
+        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
+        liver_label = self._clip(self._transform(self._resize(liver_label, order=0), seed, mode))
 
         # contour ground truth
         #liver_contour = np.zeros_like(liver_label)
@@ -61,6 +62,7 @@ class LiverDataset(Dataset):
 
         return image, liver_label #, liver_contour, liver_shape
 
+
     def __len__(self):
         return len(self.image_list)
 
@@ -76,10 +78,10 @@ class LiverDataset(Dataset):
         #std = np.std(inp)
         #return (inp - mean) / std
 
-    def _resize(self, image):
+    def _resize(self, image, order=0):
         w, h, c = image.shape
         factor = (128/w, 128/h, 64/c)
-        image = zoom(image, factor)
+        image = zoom(image, factor, order=order)
         return image[:128, :128, :64]
 
     def _eq_hist(self, image):
@@ -92,13 +94,13 @@ class LiverDataset(Dataset):
         # flip
         if seed:
             if mode==0:
-                return np.flip(image)
+                return rotate(image, angle=30)
             elif mode==1:
-                return np.rot90(image)
+                return rotate(image, angle=-30)
             elif mode==2:
-                return np.rot90(image, k=2)
+                return rotate(image, angle=10)
             elif mode==3:
-                return np.rot90(image, k=3)
+                return rotate(image, angle=-10)
 
         return image
 
@@ -111,7 +113,7 @@ class LiverDataset(Dataset):
 if __name__ == '__main__':
     data = LiverDataset(imShow=True)
 
-    for i in range(3):
+    for i in range(1):
         print(i)
-        image, liver_label, liver_contour, liver_shape = data.__getitem__(3*i)
+        image, liver_label, liver_contour, liver_shape = data.__getitem__(i)
         #print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape, np.histogram(liver_label))
