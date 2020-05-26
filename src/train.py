@@ -39,7 +39,7 @@ def train(opt):
 
     # define loss function (criterion) and optimizer
     criterion = Loss().cuda()
-    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.1)
+    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=1e-4)
 
     # Data loading code
     train_dataset = LiverDataset('train',
