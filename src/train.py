@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 import numpy as np
 
-from model import Network
+from PoolCENet.model import Network
 from data_generator import LiverDataset
 from loss import Loss
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image
