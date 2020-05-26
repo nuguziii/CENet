@@ -31,7 +31,7 @@ class LiverDataset(Dataset):
         liver_label = self._get_liver_label(label_original)
 
         # pre-processing
-        if self.state is 'test':
+        if self.state == 'test':
             seed = False
         else:
             seed = random.random() <= 0.8
@@ -59,9 +59,6 @@ class LiverDataset(Dataset):
         liver_label = np.transpose(liver_label, (2, 0, 1))
         liver_shape = np.transpose(liver_shape, (2, 0, 1))
         liver_contour = np.transpose(liver_contour, (2, 0, 1))
-
-        print(np.histogram(liver_label))
-        print(np.histogram(image))
 
         return image, liver_label, liver_contour, liver_shape
 
@@ -96,13 +93,13 @@ class LiverDataset(Dataset):
         # flip
         if seed:
             if mode==0:
-                return rotate(image, angle=30)
+                return rotate(image, angle=30, reshape=False)
             elif mode==1:
-                return rotate(image, angle=-30)
+                return rotate(image, angle=-30, reshape=False)
             elif mode==2:
-                return rotate(image, angle=10)
+                return rotate(image, angle=10, reshape=False)
             elif mode==3:
-                return rotate(image, angle=-10)
+                return rotate(image, angle=-10, reshape=False)
 
         return image
 
