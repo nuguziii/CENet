@@ -23,6 +23,19 @@ class Network(nn.Module):
 
         self.ppm = PPM(48)
 
+        self.F1 = nn.Sequential(nn.Conv3d(48, 48, kernel_size=3, stride=1, padding=1, bias=False),
+                                nn.BatchNorm3d(48),
+                                nn.ReLU(inplace=True))
+        self.F2 = nn.Sequential(nn.Conv3d(48, 48, kernel_size=3, stride=1, padding=1, bias=False),
+                                nn.BatchNorm3d(48),
+                                nn.ReLU(inplace=True))
+        self.F3 = nn.Sequential(nn.Conv3d(48, 48, kernel_size=3, stride=1, padding=1, bias=False),
+                                nn.BatchNorm3d(48),
+                                nn.ReLU(inplace=True))
+        self.F4 = nn.Sequential(nn.Conv3d(48, 48, kernel_size=3, stride=1, padding=1, bias=False),
+                                nn.BatchNorm3d(48),
+                                nn.ReLU(inplace=True))
+
         self.upsample_x2 = nn.Upsample(scale_factor=2, mode='trilinear')
         self.upsample_x4 = nn.Upsample(scale_factor=4, mode='trilinear')
         self.upsample_x8 = nn.Upsample(scale_factor=8, mode='trilinear')
@@ -59,14 +72,15 @@ class Network(nn.Module):
         ppm = self.ppm(o4)
 
         o5 = self.fam1(o4)
-        o5_F = self.uptransition1(o5) + self.upsample_x2(ppm) + o3
+        o5_F = self.F1(self.uptransition1(o5) + self.upsample_x2(ppm) + o3)
         o6 = self.fam2(o5_F)
-        o6_F = self.uptransition2(o6) + self.upsample_x4(ppm) + o2
+        o6_F = self.F2(self.uptransition2(o6) + self.upsample_x4(ppm) + o2)
         o7 = self.fam3(o6_F)
-        o7_F = self.uptransition3(o7) + self.upsample_x8(ppm) + o1
+        o7_F = self.F3(self.uptransition3(o7) + self.upsample_x8(ppm) + o1)
         o8 = self.fam4(o7_F)
+        o8_F = self.F4(o8)
 
-        return o8, o1, o7 # output, contour, shape
+        return o8_F, o1, o7 # output, contour, shape
 
 class DBlock(nn.Module): # DBlock in base network
     def __init__(self, in_channels, n=4, k=16):
