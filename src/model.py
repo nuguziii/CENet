@@ -31,8 +31,8 @@ class Network(nn.Module):
         self.upsample3 = nn.Upsample(scale_factor=2, mode='trilinear')
 
         # out transition layer
-        self.out1 = OTLayer(50, 2)
-        self.out2 = OTLayer(4, n_classes)
+        self.out1 = OTLayer(48, 48)
+        self.out2 = OTLayer(50, n_classes)
 
     def forward(self, x):
         base_output, contour_input, shape_input = self.BaseNet(x)
@@ -40,7 +40,7 @@ class Network(nn.Module):
         shape_output1 = self.shape1(shape_input)
         shape_output2 = self.shape2(shape_input)
         shape_output = shape_output1 - shape_output2
-        out1 = self.out1(torch.cat((base_output, contour_output), 1))
+        out1 = self.out1(base_output)
         out = self.out2(torch.cat((out1, self.upsample3(shape_output)), 1))
 
         return F.softmax(out), F.softmax(contour_output), F.softmax(shape_output)
