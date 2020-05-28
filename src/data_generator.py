@@ -35,10 +35,7 @@ class LiverDataset(Dataset):
             seed = random.random() <= 0.8
         mode = int(random.uniform(0, 4))
 
-        image1 = self._normalize(self._windowing(image_original))
-        image = self._AHE(self._normalize(self._windowing(image_original)))
-
-        #image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
+        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
         liver_label = self._clip(self._transform(self._resize(liver_label, order=0), seed, mode))
 
         # contour ground truth
@@ -50,7 +47,6 @@ class LiverDataset(Dataset):
         liver_shape = self._clip(zoom(liver_label, 0.5))
 
         if self.imShow:
-            save_img_to_nib(image1, './', 'test_img1_' + str(index))
             save_img_to_nib(image, './', 'test_img_'+str(index))
             #save_img_to_nib(liver_label, './', 'test_label_'+str(index))
             #save_img_to_nib(liver_contour, './', 'test_contour_' + str(index))
