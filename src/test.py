@@ -65,10 +65,12 @@ def test(opt):
         p_val.update(precision(pred, lab), 1)
 
         # save result
-        save_img_to_nib(pred, result_dir, 'img' + str(idx + 1))
-        save_img_to_nib(lab, result_dir, 'lab' + str(idx + 1))
+        save_img_to_nib(pred, result_dir, 'res' + str(idx + 1))
+        save_img_to_nib(lab, result_dir, 'label' + str(idx + 1))
 
         # visualize
+        save_img_to_nib(img, result_dir, 'img' + str(idx + 1))
+
         vis_cmp = visualize_compare(pred, lab)
         save_img_to_nib(vis_cmp, result_dir, 'vis_cmp' + str(idx + 1))
 
