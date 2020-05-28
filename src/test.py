@@ -11,7 +11,7 @@ import numpy as np
 
 from data_generator import LiverDataset
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image, visualize_compare, visualize
-from evaluate import dc, hd, assd, sensitivity, precision
+from evaluate import dc, hd95, assd, sensitivity, precision
 
 def test(opt):
     logger, final_output_dir, result_dir = create_logger(opt, 'test')
@@ -59,7 +59,7 @@ def test(opt):
         lab = np.transpose(label.detach().cpu().numpy()[0], (1, 2, 0)).astype(np.float)
 
         dc_val.update(dc(pred, lab), 1)
-        hd_val.update(hd(pred, lab), 1)
+        hd_val.update(hd95(pred, lab), 1)
         assd_val.update(assd(pred, lab), 1)
         s_val.update(sensitivity(pred, lab), 1)
         p_val.update(precision(pred, lab), 1)
