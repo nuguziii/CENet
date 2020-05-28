@@ -5,13 +5,11 @@
 #         - BTCV (Abdomen): https://www.synapse.org/#!Synapse:syn3193805 (47)
 
 import random
-import os
 import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import zoom
 from scipy.ndimage.interpolation import rotate
-from skimage import feature
-import cv2
+from skimage import feature, exposure
 
 from dataset import get_data_filelist, read_dicom, read_nii_8, read_nii_16
 from utils import save_img_to_nib
@@ -35,9 +33,12 @@ class LiverDataset(Dataset):
             seed = False
         else:
             seed = random.random() <= 0.8
-        mode = 1 #int(random.uniform(0, 4))
+        mode = int(random.uniform(0, 4))
 
-        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
+        image1 = self._normalize(self._windowing(image_original))
+        image = self._AHE(self._normalize(self._windowing(image_original)))
+
+        #image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
         liver_label = self._clip(self._transform(self._resize(liver_label, order=0), seed, mode))
 
         # contour ground truth
@@ -49,10 +50,11 @@ class LiverDataset(Dataset):
         liver_shape = self._clip(zoom(liver_label, 0.5))
 
         if self.imShow:
+            save_img_to_nib(image1, './', 'test_img1_' + str(index))
             save_img_to_nib(image, './', 'test_img_'+str(index))
-            save_img_to_nib(liver_label, './', 'test_label_'+str(index))
-            save_img_to_nib(liver_contour, './', 'test_contour_' + str(index))
-            save_img_to_nib(liver_shape, './', 'test_shape_' + str(index))
+            #save_img_to_nib(liver_label, './', 'test_label_'+str(index))
+            #save_img_to_nib(liver_contour, './', 'test_contour_' + str(index))
+            #save_img_to_nib(liver_shape, './', 'test_shape_' + str(index))
 
         # expand_dims and (c,w,h)
         image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
@@ -69,10 +71,10 @@ class LiverDataset(Dataset):
         return np.ones_like(label) * (label==6)
 
     def _windowing(self, image): # window width = 700
-        return np.clip(image, -340, 360)
+        return np.clip(image, -340, 360).astype(np.float32)
 
     def _normalize(self, image):
-        return ((image.astype(np.float32) + 340) / 700.)
+        return ((image + 340) / 700.)
         #mean = np.mean(inp)
         #std = np.std(inp)
         #return (inp - mean) / std
@@ -83,11 +85,8 @@ class LiverDataset(Dataset):
         image = zoom(image, factor, order=order)
         return image[:128, :128, :64]
 
-    def _eq_hist(self, image):
-        eq = cv2.equalizeHist(image)
-        for i in range(image.shape[2]):
-            image[:,:,i] = cv2.equalizeHist(image[:,:,i].astype(np.uint16))
-        return image
+    def _AHE(self, image):
+        return exposure.equalize_adapthist(image, kernel_size=20, clip_limit=0.01)
 
     def _transform(self, image, seed, mode):
         # flip
