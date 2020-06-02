@@ -8,10 +8,14 @@ class Loss(nn.Module):
         self.dice_loss = SoftDiceLoss().cuda()
         self.ce_loss = CELoss().cuda()
 
-    def forward(self, output, shape_output, contour_output, gt, contour_gt, shape_gt, class_weights):
+    def forward(self, output, shape_output, contour_outputs, gt, contour_gt, shape_gt, class_weights, class_weights_contour):
         output_loss = self.dice_loss(gt, output, class_weights)
         shape_loss = self.dice_loss(shape_gt, shape_output, class_weights)
-        contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
+
+        contour_loss = 0
+        for contour_output in contour_outputs:
+            contour_loss += self.ce_loss(contour_gt, contour_output, class_weights_contour)
+        contour_loss /= 3
         return output_loss, shape_loss, contour_loss
 
 class SoftDiceLoss(nn.Module):

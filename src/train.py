@@ -97,11 +97,13 @@ def train(opt):
             true_class = np.round_(float(label.sum()) / label.reshape((-1)).size(0), 2)
             class_weights = torch.Tensor([true_class, 1-true_class]).type(torch.cuda.FloatTensor)
 
+            true_class = np.round_(float(contour_label.sum()) / contour_label.reshape((-1)).size(0), 2)
+            class_weights_contour = torch.Tensor([true_class, 1 - true_class]).type(torch.cuda.FloatTensor)
+
             # train for one epoch
             output, contour_output, shape_output = model(image)
 
-            contour_label_tilde = contour_label * (output[:,1] < p).type(torch.cuda.LongTensor)
-            output_loss, shape_loss, contour_loss = criterion(output, shape_output, contour_output, label, contour_label_tilde, shape_label, class_weights)
+            output_loss, shape_loss, contour_loss = criterion(output, shape_output, contour_output, label, contour_label, shape_label, class_weights, class_weights_contour)
             loss = output_loss + shape_loss + contour_loss
 
             optimizer.zero_grad()

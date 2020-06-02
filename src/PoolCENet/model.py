@@ -52,13 +52,20 @@ class Network(nn.Module):
 
     def forward(self, x):
         base_output, contour_input, shape_input = self.BaseNet(x)
-        contour_output = self.contour(contour_input)
+
+        contour_size = contour_input[-1].size()
+        contour_outputs = []
+        for i in range(len(contour_input)):
+            contour_outputs.append(
+                F.softmax(self.contour(F.interpolate(contour_input[i], contour_size[2:], mode='trilinear', align_corners=True))))
+
         shape_output1 = self.shape1(shape_input)
         shape_output2 = self.shape2(shape_input)
         shape_output = shape_output1 - shape_output2
+
         out = self.out(torch.cat((base_output, F.interpolate(shape_output, base_output.size()[2:], mode='trilinear', align_corners=True)), 1))
 
-        return F.softmax(out), F.softmax(contour_output), F.softmax(shape_output)
+        return F.softmax(out), contour_outputs, F.softmax(shape_output)
 
     def BaseNet(self, x):
         o1 = self.dblock1(x)
@@ -80,7 +87,7 @@ class Network(nn.Module):
         o8 = self.fam4(o7_F)
         o8_F = self.F4(o8)
 
-        return o8_F, o8, o7 # output, contour, shape
+        return o8_F, [o6, o7, o8], o7 # output, contour, shape
 
 class DBlock(nn.Module): # DBlock in base network
     def __init__(self, in_channels, n=4, k=16):
