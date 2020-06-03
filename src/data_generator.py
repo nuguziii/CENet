@@ -35,7 +35,7 @@ class LiverDataset(Dataset):
             seed = random.random() <= 0.8
         mode = int(random.uniform(0, 4))
 
-        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
+        image = self._clip(self._transform(self._resize(self._AHE(self._normalize(self._windowing(image_original))), order=3), seed, mode))
         liver_label = self._clip(self._transform(self._resize(liver_label, order=0), seed, mode))
 
         # contour ground truth
@@ -84,7 +84,9 @@ class LiverDataset(Dataset):
         return image[:128, :128, :64]
 
     def _AHE(self, image):
-        return exposure.equalize_adapthist(image, kernel_size=20, clip_limit=0.01)
+        for i in range(image.shape[-1]):
+            image[:, :, i] = exposure.equalize_adapthist(image[:, :, i], kernel_size=20, clip_limit=0.01)
+        return image
 
     def _transform(self, image, seed, mode):
         # flip
