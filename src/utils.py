@@ -43,10 +43,9 @@ def create_logger(opt, phase='train'):
 
 def save_checkpoint(states, is_best, output_dir, model, epoch,
                     filename='checkpoint'):
+    torch.save(states, os.path.join(output_dir, filename + '.pth'))
     if (epoch > 100) and (epoch % 30 == 0):
         torch.save(model, os.path.join(output_dir, filename + '_' + str(epoch) + '.pth'))
-    else:
-        torch.save(model, os.path.join(output_dir, filename))
     if is_best and 'state_dict' in states:
         torch.save(states['best_state_dict'],
                    os.path.join(output_dir, 'model_best_state_dict.pth'))
