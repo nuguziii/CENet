@@ -29,6 +29,9 @@ def parse_args():
                         type=str,
                         default='model_best.pth')
 
+    # network
+    parser.add_argument('--network', type=str, default='CENet')
+
     # parameter
     parser.add_argument('--gpus', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=1)

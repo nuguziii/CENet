@@ -44,11 +44,11 @@ class LiverDataset(Dataset):
         #    liver_contour[:,:,i] = feature.canny(liver_label[:,:,i]*255)
 
         # shape ground truth (smaller version)
-        #liver_shape = self._clip(zoom(liver_label, 0.5))
+        liver_shape = self._clip(zoom(liver_label, 0.5))
 
         if self.imShow:
-            save_img_to_nib(image, './', 'test_img_'+str(index))
-            save_img_to_nib(liver_label, './', 'test_label_'+str(index))
+            save_img_to_nib(image, './train_ahe/', str(index))
+            #save_img_to_nib(liver_label, './', 'test_label_'+str(index))
             #save_img_to_nib(liver_label, './', 'test_label_'+str(index))
             #save_img_to_nib(liver_contour, './', 'test_contour_' + str(index))
             #save_img_to_nib(liver_shape, './', 'test_shape_' + str(index))
@@ -56,10 +56,10 @@ class LiverDataset(Dataset):
         # expand_dims and (c,w,h)
         image = np.expand_dims(np.transpose(image, (2, 0, 1)), axis=0)
         liver_label = np.transpose(liver_label, (2, 0, 1))
-        #liver_shape = np.transpose(liver_shape, (2, 0, 1))
+        liver_shape = np.transpose(liver_shape, (2, 0, 1))
         #liver_contour = np.transpose(liver_contour, (2, 0, 1))
 
-        return image, liver_label #, liver_contour, liver_shape
+        return image, liver_label, liver_shape
 
 
     def __len__(self):
@@ -112,6 +112,5 @@ if __name__ == '__main__':
     data = LiverDataset(imShow=True)
 
     for i in range(1):
-        print(i)
         image, liver_label, liver_contour, liver_shape = data.__getitem__(i)
         #print(image.shape, liver_label.shape, liver_contour.shape, liver_shape.shape, np.histogram(liver_label))

@@ -11,7 +11,6 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 import numpy as np
 
-from model import Network
 from data_generator import LiverDataset
 from loss import Loss
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image
@@ -32,14 +31,21 @@ def train(opt):
     writer = SummaryWriter(log_dir=tb_log_dir)
 
     # CENEt
-    #model = Network(in_channels=1)
-    # 3DUNet
-    model = ResidualUNet3D(in_channels=1, out_channels=2)
+    if opt.network == 'CENet':
+        from model import Network
+        model = Network(in_channels=1)
+    elif opt.network == 'PoolCENet':
+        from PoolCENet.model import Network
+        model = Network(in_channels=1)
+    else:
+        from unet3d.model import ResidualUNet3D
+        model = ResidualUNet3D(in_channels=1, out_channels=2)
+
     model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
 
     # define loss function (criterion) and optimizer
     criterion = Loss().cuda()
-    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=opt.lr, weight_decay=1e-6)
 
     # Data loading code
     train_dataset = LiverDataset('train',
@@ -89,21 +95,22 @@ def train(opt):
         lr_scheduler.step()
 
         end = time.time()
-        for idx, (image, label) in enumerate(train_loader):
+        for idx, (image, label, shape_label) in enumerate(train_loader):
             data_time.update(time.time() - end)
 
             image = image.type(torch.cuda.FloatTensor)
             label = label.type(torch.cuda.LongTensor)
+            shape_label = shape_label.type(torch.cuda.LongTensor)
 
             true_class = np.round_(float(label.sum()) / label.reshape((-1)).size(0), 2)
             class_weights = torch.Tensor([true_class, 1-true_class]).type(torch.cuda.FloatTensor)
 
             # train for one epoch
-            output = model(image)
+            output, shape_output = model(image)
 
             #contour_label_tilde = contour_label * (output[:,1] < p).type(torch.cuda.LongTensor)
-            loss = criterion(output, label, class_weights)
-            #loss = output_loss + shape_loss + contour_loss
+            output_loss, shape_loss = criterion(output, label, shape_output, shape_label, class_weights)
+            loss = output_loss + shape_loss #+ contour_loss
 
             optimizer.zero_grad()
             loss.backward()
