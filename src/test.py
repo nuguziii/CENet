@@ -47,11 +47,11 @@ def test(opt):
     p_val = AverageMeter()
 
     end = time.time()
-    for idx, (image, label) in enumerate(test_loader):
+    for idx, (image, label, shape_label) in enumerate(test_loader):
         data_time.update(time.time() - end)
 
         # test model
-        output = model(image)
+        output, _ = model(image)
 
         img = np.transpose(image.detach().cpu().numpy()[0,0], (1, 2, 0)).astype(np.float)
         pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
