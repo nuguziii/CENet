@@ -42,7 +42,7 @@ class Abstract3DUNet(nn.Module):
 
     def __init__(self, in_channels, out_channels, final_sigmoid, basic_module, f_maps=64, layer_order='gcr',
                  num_groups=8, num_levels=4, is_segmentation=True, testing=False,
-                 conv_kernel_size=3, pool_kernel_size=2, conv_padding=1, **kwargs):
+                 conv_kernel_size=3, pool_kernel_size=2, conv_padding=1, attention=None, **kwargs):
         super(Abstract3DUNet, self).__init__()
 
         self.testing = testing
@@ -92,7 +92,8 @@ class Abstract3DUNet(nn.Module):
                               conv_layer_order=layer_order,
                               conv_kernel_size=conv_kernel_size,
                               num_groups=num_groups,
-                              padding=conv_padding)
+                              padding=conv_padding,
+                              attention=attention)
             decoders.append(decoder)
 
         self.decoders = nn.ModuleList(decoders)
@@ -111,6 +112,7 @@ class Abstract3DUNet(nn.Module):
             # regression problem
             self.final_activation = None
 
+        self.attention = attention
     def forward(self, x):
         # encoder part
         encoders_features = []
@@ -136,7 +138,7 @@ class Abstract3DUNet(nn.Module):
         if self.testing and self.final_activation is not None:
             x = self.final_activation(x)
 
-        return F.softmax(x)
+        return F.softmax(x), None
 
 
 class UNet3D(Abstract3DUNet):
@@ -165,12 +167,12 @@ class ResidualUNet3D(Abstract3DUNet):
     """
 
     def __init__(self, in_channels, out_channels, final_sigmoid=False, f_maps=64, layer_order='gcr',
-                 num_groups=8, num_levels=5, is_segmentation=False, conv_padding=1, **kwargs):
+                 num_groups=8, num_levels=5, is_segmentation=False, conv_padding=1, attention=None, **kwargs):
         super(ResidualUNet3D, self).__init__(in_channels=in_channels, out_channels=out_channels,
                                              final_sigmoid=final_sigmoid,
                                              basic_module=ExtResNetBlock, f_maps=f_maps, layer_order=layer_order,
                                              num_groups=num_groups, num_levels=num_levels,
-                                             is_segmentation=is_segmentation, conv_padding=conv_padding,
+                                             is_segmentation=is_segmentation, conv_padding=conv_padding, attention=attention,
                                              **kwargs)
 
 
@@ -196,3 +198,10 @@ class UNet2D(Abstract3DUNet):
                                      pool_kernel_size=(1, 2, 2),
                                      conv_padding=conv_padding,
                                      **kwargs)
+
+if __name__=="__main__":
+    from torchsummary import summary
+    device = "cuda"
+    model = ResidualUNet3D(in_channels=1, out_channels=2)
+    model.to(device)
+    summary(model, input_size=(1, 64, 128, 128))

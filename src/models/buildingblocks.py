@@ -4,6 +4,7 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
+from .base_block import MPRAttention, OriginalAttention
 
 def conv3d(in_channels, out_channels, kernel_size, bias, padding):
     return nn.Conv3d(in_channels, out_channels, kernel_size, padding=padding, bias=bias)
@@ -257,7 +258,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, conv_kernel_size=3, scale_factor=(2, 2, 2), basic_module=DoubleConv,
-                 conv_layer_order='gcr', num_groups=8, mode='nearest', padding=1):
+                 conv_layer_order='gcr', num_groups=8, mode='nearest', padding=1, attention=None):
         super(Decoder, self).__init__()
         if basic_module == DoubleConv:
             # if DoubleConv is the basic_module use interpolation for upsampling and concatenation joining
@@ -280,8 +281,29 @@ class Decoder(nn.Module):
                                          order=conv_layer_order,
                                          num_groups=num_groups,
                                          padding=padding)
+        self.attention = attention
+
+        if attention=='MPR':
+            #self.a1 = MPRAttention(128, 32, 64, 64)
+            self.a2 = MPRAttention(256, 16, 32, 32)
+            self.a3 = MPRAttention(512, 8, 16, 16)
+            self.a4 = MPRAttention(1024, 4, 8, 8)
+        elif attention=='Original':
+            #self.a1 = MPRAttention(128, 32, 64, 64)
+            self.a2 = MPRAttention(256, 16, 32, 32)
+            self.a3 = MPRAttention(512, 8, 16, 16)
+            self.a4 = MPRAttention(1024, 4, 8, 8)
 
     def forward(self, encoder_features, x):
+        if self.attention is not None:
+            b, c, d, w, h = encoder_features.size()
+            if c==128:
+                encoder_features *= F.interpolate(self.a2(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
+            elif c==256:
+                encoder_features *= F.interpolate(self.a3(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
+            elif c==512:
+                encoder_features *= F.interpolate(self.a4(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
+
         x = self.upsampling(encoder_features=encoder_features, x=x)
         x = self.joining(encoder_features, x)
         x = self.basic_module(x)

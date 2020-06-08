@@ -11,9 +11,11 @@ class Loss(nn.Module):
 
     def forward(self, output, gt, shape_output, shape_gt, class_weights):
         output_loss = self.dice_loss(gt, output, class_weights)
+        if shape_output is None:
+            return output_loss
         shape_loss = self.dice_loss(shape_gt, shape_output, class_weights)
         #contour_loss = self.ce_loss(contour_gt, contour_output, class_weights)
-        return output_loss, shape_loss #, contour_loss
+        return output_loss + shape_loss #, contour_loss
 
 class SoftDiceLoss(nn.Module):
     def __init__(self):

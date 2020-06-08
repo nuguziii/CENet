@@ -30,7 +30,8 @@ def parse_args():
                         default='model_best.pth')
 
     # network
-    parser.add_argument('--network', type=str, default='CENet')
+    parser.add_argument('--network', type=str, default=None)
+    parser.add_argument('--att', type=str, default=None, help='MPR or Original')
 
     # parameter
     parser.add_argument('--gpus', type=int, default=0)

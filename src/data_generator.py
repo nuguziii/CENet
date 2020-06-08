@@ -35,7 +35,7 @@ class LiverDataset(Dataset):
             seed = random.random() <= 0.8
         mode = int(random.uniform(0, 4))
 
-        image = self._clip(self._transform(self._resize(self._AHE(self._normalize(self._windowing(image_original))), order=3), seed, mode))
+        image = self._clip(self._transform(self._resize(self._normalize(self._windowing(image_original)), order=3), seed, mode))
         liver_label = self._clip(self._transform(self._resize(liver_label, order=0), seed, mode))
 
         # contour ground truth

@@ -15,7 +15,6 @@ from data_generator import LiverDataset
 from loss import Loss
 from utils import create_logger, save_checkpoint, AverageMeter, save_img_to_nib, pred_image
 from evaluate import dc, hd, assd, sensitivity, precision
-from unet3d.model import ResidualUNet3D
 
 def validate(output, label):
     pred = np.transpose(output.detach().cpu().numpy()[0], (0, 2, 3, 1))
@@ -32,14 +31,14 @@ def train(opt):
 
     # CENEt
     if opt.network == 'CENet':
-        from model import Network
-        model = Network(in_channels=1)
+        from models.CENet import CENet
+        model = CENet(in_channels=1, attention=opt.att)
     elif opt.network == 'PoolCENet':
-        from PoolCENet.model import Network
-        model = Network(in_channels=1)
+        from models.PoolCENet import PoolCENet
+        model = PoolCENet(in_channels=1, attention=opt.att)
     else:
-        from unet3d.model import ResidualUNet3D
-        model = ResidualUNet3D(in_channels=1, out_channels=2)
+        from models.ResidualUNet3D import ResidualUNet3D
+        model = ResidualUNet3D(in_channels=1, out_channels=2, attention=opt.att)
 
     model = torch.nn.DataParallel(model, device_ids=[opt.gpus]).cuda()
 
@@ -109,8 +108,7 @@ def train(opt):
             output, shape_output = model(image)
 
             #contour_label_tilde = contour_label * (output[:,1] < p).type(torch.cuda.LongTensor)
-            output_loss, shape_loss = criterion(output, label, shape_output, shape_label, class_weights)
-            loss = output_loss + shape_loss #+ contour_loss
+            loss = criterion(output, label, shape_output, shape_label, class_weights)
 
             optimizer.zero_grad()
             loss.backward()
