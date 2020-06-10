@@ -310,7 +310,7 @@ class Decoder(nn.Module):
                 x = F.interpolate(self.a4(x), encoder_features.size()[2:], mode='trilinear',
                                                                     align_corners=True)
 
-        x = self.joining(encoder_features, x)
+        x = self.joining(encoder_features, x, True)
         x = self.basic_module(x)
         return x
 
