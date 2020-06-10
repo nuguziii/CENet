@@ -298,19 +298,15 @@ class Decoder(nn.Module):
         if self.attention is not None:
             b, c, d, w, h = encoder_features.size()
             if c==32:
-                x = F.interpolate(self.a1(x), encoder_features.size()[2:], mode='trilinear',
-                                                                    align_corners=True)
+                x = self.upsampling(encoder_features, self.a1(x))
             elif c==64:
-                x = F.interpolate(self.a2(x), encoder_features.size()[2:], mode='trilinear',
-                                                                    align_corners=True)
+                x = self.upsampling(encoder_features, self.a2(x))
             elif c==128:
-                x = F.interpolate(self.a3(x), encoder_features.size()[2:], mode='trilinear',
-                                                                    align_corners=True)
+                x = self.upsampling(encoder_features, self.a3(x))
             elif c==256:
-                x = F.interpolate(self.a4(x), encoder_features.size()[2:], mode='trilinear',
-                                                                    align_corners=True)
+                x = self.upsampling(encoder_features, self.a4(x))
 
-        x = self.joining(encoder_features, x, True)
+        x = self.joining(encoder_features, x)
         x = self.basic_module(x)
         return x
 
