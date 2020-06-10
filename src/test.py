@@ -85,21 +85,21 @@ def test(opt):
               'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
               'Speed {speed:.1f} samples/s\t' \
               'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
-              'DC {dc.val:.2f}\t\t' \
-              'HD {hd.val:.2f}\t' \
-              'ASSD {assd.val:.2f}\t' \
-              'Sensitivity {s.val:.2f}\t' \
-              'Precision {p.val:.2f}\t'.format(
+              'DC {dc.val:.3f}\t\t' \
+              'HD {hd.val:.3f}\t' \
+              'ASSD {assd.val:.3f}\t' \
+              'Sensitivity {s.val:.3f}\t' \
+              'Precision {p.val:.3f}\t'.format(
                 idx, len(test_loader), batch_time=batch_time,
                 speed=image.size(0) / batch_time.val,
                 data_time=data_time, dc=dc_val, hd=hd_val, assd=assd_val, s=s_val, p=p_val)
         logger.info(msg)
 
     msg = '[total]\t' \
-        'DC {dc.avg:.2f}\t\t'\
-        'HD {hd.avg:.2f}\t'\
-        'ASSD {assd.avg:.2f}\t'\
-        'Sensitivity {s.avg:.2f}\t'\
-        'Precision {p.avg:.2f}'.format(
+        'DC {dc.avg:.3f}\t\t'\
+        'HD {hd.avg:.3f}\t'\
+        'ASSD {assd.avg:.3f}\t'\
+        'Sensitivity {s.avg:.3f}\t'\
+        'Precision {p.avg:.3f}'.format(
         dc=dc_val, hd=hd_val, assd=assd_val, s=s_val, p=p_val)
     logger.info(msg)

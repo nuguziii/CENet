@@ -284,25 +284,31 @@ class Decoder(nn.Module):
         self.attention = attention
 
         if attention=='MPR':
-            #self.a1 = MPRAttention(128, 32, 64, 64)
-            self.a2 = MPRAttention(256, 16, 32, 32)
-            self.a3 = MPRAttention(512, 8, 16, 16)
-            self.a4 = MPRAttention(1024, 4, 8, 8)
+            self.a1 = MPRAttention(64, 32, 64, 64)
+            self.a2 = MPRAttention(128, 16, 32, 32)
+            self.a3 = MPRAttention(256, 8, 16, 16)
+            self.a4 = MPRAttention(512, 4, 8, 8)
         elif attention=='Original':
-            #self.a1 = MPRAttention(128, 32, 64, 64)
-            self.a2 = MPRAttention(256, 16, 32, 32)
-            self.a3 = MPRAttention(512, 8, 16, 16)
-            self.a4 = MPRAttention(1024, 4, 8, 8)
+            self.a1 = OriginalAttention(64, 32, 64, 64)
+            self.a2 = OriginalAttention(128, 16, 32, 32)
+            self.a3 = OriginalAttention(256, 8, 16, 16)
+            self.a4 = OriginalAttention(512, 4, 8, 8)
 
     def forward(self, encoder_features, x):
         if self.attention is not None:
             b, c, d, w, h = encoder_features.size()
-            if c==128:
-                encoder_features *= F.interpolate(self.a2(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
+            if c==32:
+                encoder_features = encoder_features * F.interpolate(self.a1(x), encoder_features.size()[2:], mode='trilinear',
+                                                                    align_corners=True)
+            elif c==64:
+                encoder_features = encoder_features * F.interpolate(self.a2(x), encoder_features.size()[2:], mode='trilinear',
+                                                                    align_corners=True)
+            elif c==128:
+                encoder_features = encoder_features * F.interpolate(self.a3(x), encoder_features.size()[2:], mode='trilinear',
+                                                                    align_corners=True)
             elif c==256:
-                encoder_features *= F.interpolate(self.a3(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
-            elif c==512:
-                encoder_features *= F.interpolate(self.a4(x), encoder_features.size()[2:], mode='trilinear', align_corners=True)
+                encoder_features = encoder_features * F.interpolate(self.a4(x), encoder_features.size()[2:], mode='trilinear',
+                                                                    align_corners=True)
 
         x = self.upsampling(encoder_features=encoder_features, x=x)
         x = self.joining(encoder_features, x)
