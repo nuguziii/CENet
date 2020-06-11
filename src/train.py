@@ -116,7 +116,7 @@ def train(opt):
 
             # update
             dsc_val, pred = validate(output, label)
-            if (idx+1)%10==0:
+            if (idx+1)%7==0:
                 save_img_to_nib(pred, final_output_dir, str(idx))
 
             dsc.update(dsc_val, 1)

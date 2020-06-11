@@ -90,7 +90,7 @@ def test(opt):
               'ASSD {assd.val:.3f}\t' \
               'Sensitivity {s.val:.3f}\t' \
               'Precision {p.val:.3f}\t'.format(
-                idx, len(test_loader), batch_time=batch_time,
+                idx+1, len(test_loader), batch_time=batch_time,
                 speed=image.size(0) / batch_time.val,
                 data_time=data_time, dc=dc_val, hd=hd_val, assd=assd_val, s=s_val, p=p_val)
         logger.info(msg)
