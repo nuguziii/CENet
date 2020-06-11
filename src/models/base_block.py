@@ -205,7 +205,7 @@ class MPRAttention(nn.Module):
 
         out = self.compress(out)
         out = F.sigmoid(self.conv(out))
-        return out * x
+        return out
 
 class OriginalAttention(nn.Module):
     def __init__(self, c, d, h, w):
@@ -223,7 +223,7 @@ class OriginalAttention(nn.Module):
         x = self.ChannelGate(x)
         out = self.compress(self.conv1(x))
         out = F.sigmoid(self.conv2(out))
-        return out * x
+        return out
 
 class ChannelPool(nn.Module):
     def forward(self, x):
